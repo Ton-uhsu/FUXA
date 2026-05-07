@@ -67,12 +67,14 @@ typings/
 
 #appdata
 _appdata/
+appdata/
 
 # logs
 _logs/
 
 # database
 _db/
+db/
 
 # ex.packages
 _pkg/

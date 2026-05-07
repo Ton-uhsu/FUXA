@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Smartfarm demo widget for FUXA.
+  Visual inspiration:
+  - Openclipart "Openclipart web button" (public domain): https://openclipart.org/detail/194963/openclipart-web-button
+  - Tabler Icons visual language (MIT): https://github.com/tabler/tabler-icons
+  This SVG is an original Smartfarm example, not a direct copy.
+-->
+<svg id="smartfarmBlueCommandButton" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 130">
+  <defs>
+    <linearGradient id="outerFrame" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f3f6fb"/>
+      <stop offset="20%" stop-color="#9da8b8"/>
+      <stop offset="52%" stop-color="#3a4352"/>
+      <stop offset="100%" stop-color="#d8dfe8"/>
+    </linearGradient>
+    <filter id="squareGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="7" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect x="8" y="8" width="164" height="114" rx="18" fill="#0d131a"/>
+  <rect x="18" y="18" width="144" height="94" rx="15" fill="url(#outerFrame)"/>
+  <rect x="28" y="28" width="124" height="74" rx="12" fill="#121a24"/>
+  <rect id="glowBox" x="34" y="34" width="112" height="62" rx="10" fill="#0a84ff" opacity="0.20" filter="url(#squareGlow)"/>
+  <rect id="faceBox" x="38" y="38" width="104" height="54" rx="10" fill="#19314f"/>
+  <path id="commandIcon" d="M70 65 H112" stroke="#eff6ff" stroke-width="8" stroke-linecap="round"/>
+  <path id="commandArrow" d="M102 52 L115 65 L102 78" fill="none" stroke="#eff6ff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <text id="label" x="90" y="82" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#ecf4ff">RESET</text>
+  <rect id="clickTarget" x="8" y="8" width="164" height="114" rx="18" fill="#ffffff" opacity="0"/>
+
+  <script><![CDATA[
+    //!export-start
+    let _pb_state = false;
+    let _ps_label = 'RESET';
+    let _pc_on = '#0a84ff';
+    let _pc_off = '#3b4250';
+    //!export-end
+
+    let currentState = !!_pb_state;
+
+    function mixColor(hex, amount) {
+      const clean = String(hex || '').replace('#', '').padEnd(6, '0').slice(0, 6);
+      const num = parseInt(clean, 16);
+      const clamp = value => Math.max(0, Math.min(255, value));
+      const r = clamp((num >> 16) + amount);
+      const g = clamp(((num >> 8) & 255) + amount);
+      const b = clamp((num & 255) + amount);
+      return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+    }
+
+    function setText(el, text) {
+      if (!el) return;
+      while (el.firstChild) {
+        el.removeChild(el.firstChild);
+      }
+      el.appendChild(document.createTextNode(text));
+    }
+
+    function render() {
+      const face = document.getElementById('faceBox');
+      const glow = document.getElementById('glowBox');
+      const icon = document.getElementById('commandIcon');
+      const arrow = document.getElementById('commandArrow');
+      const label = document.getElementById('label');
+      const activeColor = currentState ? _pc_on : _pc_off;
+
+      if (face) face.setAttribute('fill', mixColor(activeColor, currentState ? -20 : -8));
+      if (glow) {
+        glow.setAttribute('fill', _pc_on);
+        glow.setAttribute('opacity', currentState ? '0.62' : '0.12');
+      }
+      if (icon) icon.setAttribute('stroke', currentState ? '#f4f9ff' : '#d9e1ea');
+      if (arrow) arrow.setAttribute('stroke', currentState ? '#f4f9ff' : '#d9e1ea');
+      setText(label, _ps_label || 'RESET');
+      if (label) label.setAttribute('fill', currentState ? '#f2f8ff' : '#d9e1ea');
+    }
+
+    function putValue(id, value) {
+      if (id === '_pb_state') {
+        currentState = !!value;
+        render();
+      } else if (id === '_ps_label') {
+        _ps_label = String(value ?? '');
+        render();
+      } else if (id === '_pc_on') {
+        _pc_on = String(value ?? '#0a84ff');
+        render();
+      } else if (id === '_pc_off') {
+        _pc_off = String(value ?? '#3b4250');
+        render();
+      }
+    }
+
+    function toggleValue() {
+      currentState = !currentState;
+      render();
+      if (typeof postValue === 'function') {
+        postValue('_pb_state', currentState);
+      }
+    }
+
+    const target = document.getElementById('clickTarget');
+    if (target) {
+      target.addEventListener('click', toggleValue);
+      target.style.cursor = 'pointer';
+    }
+
+    render();
+  ]]></script>
+</svg>

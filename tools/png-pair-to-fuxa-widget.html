@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PNG Pair To FUXA Widget</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #13161c;
+      --panel: #1b212b;
+      --panel-2: #252d39;
+      --line: #3a4657;
+      --text: #eef3f8;
+      --muted: #9facc0;
+      --accent: #42b883;
+      --accent-2: #2f9e6c;
+      --danger: #ff7b72;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      background:
+        radial-gradient(circle at top right, rgba(66, 184, 131, 0.12), transparent 28%),
+        linear-gradient(180deg, #0f1319, var(--bg));
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .page {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 28px 20px 40px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 32px;
+      line-height: 1.1;
+    }
+
+    .lead {
+      margin: 0 0 24px;
+      color: var(--muted);
+      max-width: 760px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(320px, 460px) minmax(320px, 1fr);
+      gap: 20px;
+    }
+
+    .card {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.22);
+    }
+
+    .card h2 {
+      margin: 0 0 14px;
+      font-size: 18px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    label {
+      display: grid;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 11px 12px;
+      font: inherit;
+    }
+
+    input[type="file"] {
+      width: 100%;
+      border: 1px dashed var(--line);
+      background: var(--panel);
+      color: var(--muted);
+      border-radius: 12px;
+      padding: 12px;
+      font: inherit;
+    }
+
+    .toggle-line {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text);
+      font-size: 14px;
+      padding: 6px 0;
+    }
+
+    .toggle-line input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent);
+    }
+
+    .two-col {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 11px 16px;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s ease, opacity 0.15s ease, background 0.15s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+      transform: none;
+    }
+
+    .primary {
+      background: linear-gradient(180deg, var(--accent), var(--accent-2));
+      color: #08130f;
+    }
+
+    .secondary {
+      background: #2c3542;
+      color: var(--text);
+    }
+
+    .ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--line);
+    }
+
+    .preview-shell {
+      display: grid;
+      gap: 14px;
+    }
+
+    .preview-toolbar {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      border-radius: 999px;
+      padding: 8px 12px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .preview-stage {
+      background:
+        linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px),
+        linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+        #7f7a7a;
+      background-size: 24px 24px, 24px 24px, auto;
+      border-radius: 18px;
+      min-height: 360px;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      border: 1px solid var(--line);
+    }
+
+    .preview-widget {
+      display: grid;
+      justify-items: center;
+      gap: 10px;
+      user-select: none;
+      cursor: pointer;
+    }
+
+    .preview-canvas {
+      position: relative;
+      display: grid;
+      place-items: center;
+    }
+
+    .preview-canvas img {
+      max-width: min(280px, 50vw);
+      max-height: 220px;
+      object-fit: contain;
+      display: none;
+      filter: drop-shadow(0 14px 24px rgba(0, 0, 0, 0.32));
+    }
+
+    .preview-canvas img.active {
+      display: block;
+    }
+
+    .preview-label {
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: #f3f7fb;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+    }
+
+    .preview-callout {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      border-radius: 14px;
+      background: linear-gradient(180deg, rgba(66, 184, 131, 0.2), rgba(47, 158, 108, 0.18));
+      border: 1px solid rgba(66, 184, 131, 0.45);
+      color: #eafaf2;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.2);
+    }
+
+    .preview-callout strong {
+      color: #ffffff;
+    }
+
+    textarea {
+      min-height: 240px;
+      resize: vertical;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .hint,
+    .status {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .status {
+      min-height: 20px;
+    }
+
+    .status.error {
+      color: var(--danger);
+    }
+
+    @media (max-width: 900px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .two-col {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <h1>PNG Pair To FUXA Widget</h1>
+    <p class="lead">
+      เครื่องมือนี้เอา PNG สองรูปมาแปลงเป็นไฟล์ SVG widget สำหรับ FUXA แบบง่าย ๆ
+      ใช้แค่สถานะ <strong>off</strong> กับ <strong>on</strong> เท่านั้น กดแล้ว toggle ได้
+      และ bind `_pb_state` ใน FUXA ต่อได้เลย
+    </p>
+
+    <section class="layout">
+      <div class="card">
+        <h2>1. ตั้งค่า Widget</h2>
+        <div class="grid">
+          <label>
+            ชื่อไฟล์ / Widget name
+            <input id="widgetName" type="text" value="png-toggle-widget" />
+          </label>
+
+          <label>
+            <span class="toggle-line">
+              <input id="showLabel" type="checkbox" checked />
+              <span>แสดงข้อความใต้ปุ่ม</span>
+            </span>
+            <input id="labelText" type="text" value="START" />
+          </label>
+
+          <div class="two-col">
+            <label>
+              <span class="toggle-line">
+                <input id="autoPadding" type="checkbox" checked />
+                <span>Auto padding ตามขนาดรูป</span>
+              </span>
+              <input id="padding" type="number" min="0" max="100" step="1" value="12" />
+            </label>
+
+            <label>
+              ระยะข้อความด้านล่าง
+              <input id="labelGap" type="number" min="0" max="100" step="1" value="14" />
+            </label>
+          </div>
+
+          <div class="two-col">
+            <label>
+              รูปสถานะ OFF
+              <input id="offFile" type="file" accept=".png,image/png" />
+            </label>
+
+            <label>
+              รูปสถานะ ON
+              <input id="onFile" type="file" accept=".png,image/png" />
+            </label>
+          </div>
+
+          <div class="button-row">
+            <button id="generateBtn" class="primary" disabled>Generate SVG</button>
+            <button id="downloadBtn" class="secondary" disabled>Download SVG</button>
+            <button id="copyBtn" class="ghost" disabled>Copy SVG</button>
+            <button id="togglePreviewBtn" class="secondary" disabled>Toggle Preview <- Click Here</button>
+          </div>
+
+          <div id="status" class="status"></div>
+          <p class="hint">
+            ไฟล์ที่ได้เอาไปวางใน `FUXA/widgets/...` หรือ `server/_widgets/...` แล้วใช้จาก `Widgets Kiosk` ได้เลย
+          </p>
+        </div>
+      </div>
+
+      <div class="preview-shell">
+        <div class="card">
+          <h2>2. Preview</h2>
+          <div class="preview-toolbar">
+            <span id="sizeChip" class="chip">ยังไม่ได้เลือกรูป</span>
+            <span class="preview-callout">คลิกที่รูปตัวอย่าง หรือกดปุ่ม <strong>Toggle Preview</strong> เพื่อสลับสถานะ</span>
+          </div>
+          <div class="preview-stage">
+            <div id="previewWidget" class="preview-widget">
+              <div id="previewCanvas" class="preview-canvas"></div>
+              <div id="previewLabel" class="preview-label"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>3. Generated SVG</h2>
+          <textarea id="svgOutput" spellcheck="false" placeholder="กด Generate SVG แล้วโค้ดจะขึ้นที่นี่"></textarea>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const state = {
+      off: null,
+      on: null,
+      isOn: false,
+      svg: ""
+    };
+
+    const els = {
+      widgetName: document.getElementById("widgetName"),
+      showLabel: document.getElementById("showLabel"),
+      labelText: document.getElementById("labelText"),
+      autoPadding: document.getElementById("autoPadding"),
+      padding: document.getElementById("padding"),
+      labelGap: document.getElementById("labelGap"),
+      offFile: document.getElementById("offFile"),
+      onFile: document.getElementById("onFile"),
+      generateBtn: document.getElementById("generateBtn"),
+      downloadBtn: document.getElementById("downloadBtn"),
+      copyBtn: document.getElementById("copyBtn"),
+      togglePreviewBtn: document.getElementById("togglePreviewBtn"),
+      svgOutput: document.getElementById("svgOutput"),
+      previewCanvas: document.getElementById("previewCanvas"),
+      previewLabel: document.getElementById("previewLabel"),
+      sizeChip: document.getElementById("sizeChip"),
+      status: document.getElementById("status")
+    };
+
+    function safeFileName(value) {
+      return (value || "png-toggle-widget")
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]+/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "") || "png-toggle-widget";
+    }
+
+    function xmlEscape(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function jsString(value) {
+      return String(value ?? "")
+        .replace(/\\/g, "\\\\")
+        .replace(/'/g, "\\'");
+    }
+
+    function setStatus(message, isError = false) {
+      els.status.textContent = message;
+      els.status.classList.toggle("error", isError);
+    }
+
+    function readPngFile(file) {
+      return new Promise((resolve, reject) => {
+        if (!file) {
+          reject(new Error("Missing file"));
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error(`อ่านไฟล์ ${file.name} ไม่สำเร็จ`));
+        reader.onload = () => {
+          const dataUrl = reader.result;
+          const img = new Image();
+          img.onerror = () => reject(new Error(`โหลดรูป ${file.name} ไม่สำเร็จ`));
+          img.onload = () => {
+            resolve({
+              name: file.name,
+              dataUrl,
+              width: img.naturalWidth,
+              height: img.naturalHeight
+            });
+          };
+          img.src = dataUrl;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function hasBothImages() {
+      return Boolean(state.off && state.on);
+    }
+
+    function shouldShowLabel() {
+      return Boolean(els.showLabel.checked);
+    }
+
+    function getAutoPaddingValue() {
+      if (!hasBothImages()) {
+        return Math.max(0, Number(els.padding.value) || 0);
+      }
+
+      const maxDim = Math.max(state.off.width, state.off.height, state.on.width, state.on.height);
+      return Math.max(4, Math.min(32, Math.round(maxDim * 0.08)));
+    }
+
+    function getPaddingValue() {
+      return els.autoPadding.checked
+        ? getAutoPaddingValue()
+        : Math.max(0, Number(els.padding.value) || 0);
+    }
+
+    function refreshOptionState() {
+      const showLabel = shouldShowLabel();
+      const autoPadding = Boolean(els.autoPadding.checked);
+
+      els.labelText.disabled = !showLabel;
+      els.labelGap.disabled = !showLabel;
+      els.padding.disabled = autoPadding;
+    }
+
+    function updateButtons() {
+      const ready = hasBothImages();
+      els.generateBtn.disabled = !ready;
+      els.togglePreviewBtn.disabled = !ready;
+      els.downloadBtn.disabled = !state.svg;
+      els.copyBtn.disabled = !state.svg;
+    }
+
+    function renderPreview() {
+      els.previewCanvas.innerHTML = "";
+      refreshOptionState();
+      els.previewLabel.textContent = shouldShowLabel() ? (els.labelText.value || "") : "";
+
+      if (!hasBothImages()) {
+        els.sizeChip.textContent = "ยังไม่ได้เลือกรูป";
+        updateButtons();
+        return;
+      }
+
+      const offImg = document.createElement("img");
+      offImg.src = state.off.dataUrl;
+      offImg.alt = "OFF preview";
+      offImg.className = state.isOn ? "" : "active";
+
+      const onImg = document.createElement("img");
+      onImg.src = state.on.dataUrl;
+      onImg.alt = "ON preview";
+      onImg.className = state.isOn ? "active" : "";
+
+      els.previewCanvas.append(offImg, onImg);
+      els.sizeChip.textContent =
+        `OFF ${state.off.width}x${state.off.height} | ON ${state.on.width}x${state.on.height} | padding ${getPaddingValue()}${els.autoPadding.checked ? " auto" : ""}`;
+      updateButtons();
+    }
+
+    function buildSvg() {
+      const padding = getPaddingValue();
+      const showLabel = shouldShowLabel();
+      const labelGap = showLabel ? Math.max(0, Number(els.labelGap.value) || 0) : 0;
+      const labelText = showLabel ? (els.labelText.value || "") : "";
+
+      const imageWidth = Math.max(state.off.width, state.on.width);
+      const imageHeight = Math.max(state.off.height, state.on.height);
+      const width = imageWidth + (padding * 2);
+      const labelHeight = labelText ? 28 : 0;
+      const height = imageHeight + (padding * 2) + (labelText ? (labelGap + labelHeight) : 0);
+      const imageX = padding;
+      const imageY = padding;
+      const labelY = imageY + imageHeight + labelGap + 18;
+
+      const offOpacity = state.isOn ? "0" : "1";
+      const onOpacity = state.isOn ? "1" : "0";
+      const labelSvg = labelText
+        ? `  <text id="label" x="${width / 2}" y="${labelY}" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#f3f7fb">${xmlEscape(labelText)}</text>\n`
+        : "";
+
+      return `<?xml version="1.0" encoding="UTF-8"?>
+<svg id="${xmlEscape(safeFileName(els.widgetName.value))}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}">
+  <image id="imgOff" href="${state.off.dataUrl}" x="${imageX}" y="${imageY}" width="${imageWidth}" height="${imageHeight}" preserveAspectRatio="xMidYMid meet" opacity="${offOpacity}"/>
+  <image id="imgOn" href="${state.on.dataUrl}" x="${imageX}" y="${imageY}" width="${imageWidth}" height="${imageHeight}" preserveAspectRatio="xMidYMid meet" opacity="${onOpacity}"/>
+${labelSvg}  <rect id="clickTarget" x="0" y="0" width="${width}" height="${height}" fill="#ffffff" fill-opacity="0.001" pointer-events="all"/>
+
+  <script><![CDATA[
+    //!export-start
+    let _pb_state = ${state.isOn ? "true" : "false"};
+    let _pb_cmd = ${state.isOn ? "true" : "false"};
+    let _ps_label = '${jsString(labelText)}';
+    //!export-end
+
+    let currentState = !!_pb_state;
+
+    function setText(el, text) {
+      if (!el) return;
+      while (el.firstChild) {
+        el.removeChild(el.firstChild);
+      }
+      el.appendChild(document.createTextNode(text));
+    }
+
+    function render() {
+      const offEl = document.getElementById('imgOff');
+      const onEl = document.getElementById('imgOn');
+      const labelEl = document.getElementById('label');
+
+      if (offEl) offEl.setAttribute('opacity', currentState ? '0' : '1');
+      if (onEl) onEl.setAttribute('opacity', currentState ? '1' : '0');
+      setText(labelEl, _ps_label || '');
+    }
+
+    function putValue(id, value) {
+      if (id === '_pb_state') {
+        currentState = !!value;
+        render();
+      } else if (id === '_ps_label') {
+        _ps_label = String(value ?? '');
+        render();
+      }
+    }
+
+    function sendCommand(nextState) {
+      if (typeof postValue === 'function') {
+        postValue('_pb_cmd', nextState);
+      }
+    }
+
+    const clickTarget = document.getElementById('clickTarget');
+    if (clickTarget) {
+      clickTarget.addEventListener('mousedown', () => sendCommand(true));
+      clickTarget.addEventListener('mouseup', () => sendCommand(false));
+      clickTarget.addEventListener('mouseleave', () => sendCommand(false));
+      clickTarget.addEventListener('touchstart', () => sendCommand(true));
+      clickTarget.addEventListener('touchend', () => sendCommand(false));
+      clickTarget.style.cursor = 'pointer';
+    }
+
+    render();
+  ]]><\/script>
+</svg>
+`;
+    }
+
+    async function handleFileChange(kind, file) {
+      if (!file) {
+        state[kind] = null;
+        state.svg = "";
+        els.svgOutput.value = "";
+        renderPreview();
+        setStatus("");
+        return;
+      }
+
+      try {
+        setStatus(`กำลังอ่านไฟล์ ${file.name}...`);
+        state[kind] = await readPngFile(file);
+        state.svg = "";
+        els.svgOutput.value = "";
+        renderPreview();
+        setStatus(`โหลดไฟล์ ${file.name} เรียบร้อย`);
+      } catch (error) {
+        state[kind] = null;
+        setStatus(error.message, true);
+      }
+    }
+
+    els.offFile.addEventListener("change", (event) => {
+      handleFileChange("off", event.target.files[0]);
+    });
+
+    els.onFile.addEventListener("change", (event) => {
+      handleFileChange("on", event.target.files[0]);
+    });
+
+    els.showLabel.addEventListener("change", renderPreview);
+    els.autoPadding.addEventListener("change", renderPreview);
+    els.labelText.addEventListener("input", renderPreview);
+    els.padding.addEventListener("input", renderPreview);
+    els.labelGap.addEventListener("input", renderPreview);
+
+    els.togglePreviewBtn.addEventListener("click", () => {
+      state.isOn = !state.isOn;
+      renderPreview();
+    });
+
+    document.getElementById("previewWidget").addEventListener("click", () => {
+      if (!hasBothImages()) return;
+      state.isOn = !state.isOn;
+      renderPreview();
+    });
+
+    els.generateBtn.addEventListener("click", () => {
+      if (!hasBothImages()) {
+        setStatus("กรุณาเลือกรูป OFF และ ON ก่อน", true);
+        return;
+      }
+
+      state.svg = buildSvg();
+      els.svgOutput.value = state.svg;
+      updateButtons();
+      setStatus("สร้าง SVG widget เรียบร้อยแล้ว");
+    });
+
+    els.downloadBtn.addEventListener("click", () => {
+      if (!state.svg) return;
+      const blob = new Blob([state.svg], { type: "image/svg+xml;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${safeFileName(els.widgetName.value)}.svg`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    });
+
+    els.copyBtn.addEventListener("click", async () => {
+      if (!state.svg) return;
+      try {
+        await navigator.clipboard.writeText(state.svg);
+        setStatus("คัดลอก SVG ลง clipboard แล้ว");
+      } catch (error) {
+        setStatus("คัดลอกไม่สำเร็จ ลองใช้ช่อง Generated SVG แทน", true);
+      }
+    });
+
+    renderPreview();
+    refreshOptionState();
+    updateButtons();
+  </script>
+</body>
+</html>
