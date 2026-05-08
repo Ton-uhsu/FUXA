@@ -1,35 +1,93 @@
 # PNG Pair To FUXA Widget
 
-ไฟล์เครื่องมือ:
+Tool file:
 
 - `png-pair-to-fuxa-widget.html`
 
-## ใช้งาน
+## Usage
 
-1. เปิดไฟล์ `png-pair-to-fuxa-widget.html` ด้วยเบราว์เซอร์
-2. เลือกรูป PNG สถานะ `OFF`
-3. เลือกรูป PNG สถานะ `ON`
-4. ตั้งชื่อ widget และข้อความใต้ปุ่ม
-5. กด `Generate SVG`
-6. กด `Download SVG`
+1. Open `png-pair-to-fuxa-widget.html` in a browser.
+2. Choose the `OFF` PNG.
+3. Choose the `ON` PNG.
+4. Set the widget name and optional label.
+5. Click `Generate SVG`.
+6. Click `Download SVG`.
 
-## หลังจากได้ไฟล์ SVG
+## After Generating The SVG
 
-นำไฟล์ที่สร้างได้ไปไว้ในโฟลเดอร์ widget ของ FUXA เช่น:
+Place the generated SVG in a FUXA widget folder such as:
 
 - `FUXA/widgets/smartfarm-examples/`
 
-จากนั้นรีเฟรช FUXA editor แล้วเปิด `Widgets Kiosk`
+Then refresh the FUXA editor and open `Widgets Kiosk`.
 
-## สิ่งที่ widget นี้ทำ
+## What The Widget Does
 
-- มีแค่ 2 สถานะ: `OFF` และ `ON`
-- ใช้ตัวแปร `_pb_state` สำหรับสลับสถานะ
-- ใช้ตัวแปร `_ps_label` สำหรับข้อความใต้รูป
-- กดบน widget แล้ว toggle ค่า `_pb_state` ได้
+- supports 2 states: `OFF` and `ON`
+- uses `_pb_state` for display state
+- uses `_ps_label` for optional text
+- can generate either boolean command widgets or Smartfarm raw JSON command widgets
 
-## หมายเหตุ
+## Smartfarm Raw Command Mode
 
-- ตัว widget จะฝังรูป PNG เป็น data URL ลงใน SVG เลย
-- เพราะงั้นไฟล์ SVG ที่ได้จะค่อนข้างใหญ่ถ้ารูปต้นฉบับใหญ่
-- ถ้าต้องการไฟล์เล็กลง ควรย่อ PNG ก่อนนำเข้า
+When `Smartfarm raw command mode` is enabled:
+
+- the generated widget posts through `_ps_cmd` instead of `_pb_cmd`
+- the widget toggles visually on each click
+- the outbound payload is a JSON string such as:
+
+```json
+{"action":"write_bit","type":"Y","addr":4,"value":true}
+```
+
+and then:
+
+```json
+{"action":"write_bit","type":"Y","addr":4,"value":false}
+```
+
+Main bindings in FUXA:
+
+- `_ps_cmd` -> raw MQTT publish tag
+- `_pb_state` -> optional feedback tag if the image must follow real device state
+
+## Working Toggle Method For Lab/View
+
+Use this pattern when the widget should alternate between `true` and `false`
+on each click in real FUXA runtime:
+
+1. Bind `_ps_cmd` to one raw MQTT publish tag such as `CMD_Y4`.
+2. Leave `_pb_state` at default `false` during the first test, or bind it only
+   to a real boolean or `0`/`1` feedback tag.
+3. Keep `_ps_action`, `_ps_type`, and `_pn_addr` at the needed command values.
+4. Do not add a shape `Events -> Set Value` row on the same widget when you
+   want the SVG widget script itself to toggle.
+5. Test in `Lab` or `View`.
+
+Expected payloads:
+
+- first click -> `{"action":"write_bit","type":"Y","addr":4,"value":true}`
+- second click -> `{"action":"write_bit","type":"Y","addr":4,"value":false}`
+
+## Important Reload Rule
+
+- FUXA can keep the processed widget script inside the existing placed widget
+  instance.
+- If you edit the SVG file on disk and behavior does not change, remove the
+  old widget from the view and drag the updated SVG in again.
+- Custom publish widgets also need a declared placeholder function:
+
+```js
+function postValue(id, value) {
+  console.error('Not defined!', id, value);
+}
+```
+
+Without that placeholder, a standalone browser preview may still look correct
+while the real FUXA Lab/View widget stays silent.
+
+## Notes
+
+- The widget embeds the PNG files as data URLs inside the SVG.
+- Large source PNGs can make the final SVG large too.
+- If needed, shrink or optimize PNGs before importing them.

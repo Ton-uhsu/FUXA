@@ -42,6 +42,10 @@
     let _pc_off = '#373c45';
     //!export-end
 
+    function postValue(id, value) {
+      console.error('Not defined!', id, value);
+    }
+
     let currentState = !!_pb_state;
 
     function mixColor(hex, amount) {

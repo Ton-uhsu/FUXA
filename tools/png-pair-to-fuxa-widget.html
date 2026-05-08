@@ -340,6 +340,30 @@
             </label>
           </div>
 
+          <label>
+            <span class="toggle-line">
+              <input id="smartfarmRawMode" type="checkbox" checked />
+              <span>Smartfarm raw command mode</span>
+            </span>
+          </label>
+
+          <div class="two-col">
+            <label>
+              Command action
+              <input id="commandAction" type="text" value="write_bit" />
+            </label>
+
+            <label>
+              Command type
+              <input id="commandType" type="text" value="Y" />
+            </label>
+          </div>
+
+          <label>
+            Command addr
+            <input id="commandAddr" type="number" min="0" step="1" value="4" />
+          </label>
+
           <div class="button-row">
             <button id="generateBtn" class="primary" disabled>Generate SVG</button>
             <button id="downloadBtn" class="secondary" disabled>Download SVG</button>
@@ -394,6 +418,10 @@
       labelGap: document.getElementById("labelGap"),
       offFile: document.getElementById("offFile"),
       onFile: document.getElementById("onFile"),
+      smartfarmRawMode: document.getElementById("smartfarmRawMode"),
+      commandAction: document.getElementById("commandAction"),
+      commandType: document.getElementById("commandType"),
+      commandAddr: document.getElementById("commandAddr"),
       generateBtn: document.getElementById("generateBtn"),
       downloadBtn: document.getElementById("downloadBtn"),
       copyBtn: document.getElementById("copyBtn"),
@@ -433,6 +461,58 @@
       els.status.classList.toggle("error", isError);
     }
 
+    function cropTransparentBounds(img) {
+      const width = img.naturalWidth;
+      const height = img.naturalHeight;
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+
+      canvas.width = width;
+      canvas.height = height;
+      ctx.drawImage(img, 0, 0);
+
+      const pixels = ctx.getImageData(0, 0, width, height).data;
+      let minX = width;
+      let minY = height;
+      let maxX = -1;
+      let maxY = -1;
+
+      for (let y = 0; y < height; y += 1) {
+        for (let x = 0; x < width; x += 1) {
+          const alpha = pixels[(y * width + x) * 4 + 3];
+          if (alpha > 0) {
+            if (x < minX) minX = x;
+            if (y < minY) minY = y;
+            if (x > maxX) maxX = x;
+            if (y > maxY) maxY = y;
+          }
+        }
+      }
+
+      if (maxX < minX || maxY < minY) {
+        return { dataUrl: img.src, width, height, cropped: false };
+      }
+
+      const croppedWidth = maxX - minX + 1;
+      const croppedHeight = maxY - minY + 1;
+      if (croppedWidth === width && croppedHeight === height) {
+        return { dataUrl: img.src, width, height, cropped: false };
+      }
+
+      const croppedCanvas = document.createElement("canvas");
+      const croppedCtx = croppedCanvas.getContext("2d");
+      croppedCanvas.width = croppedWidth;
+      croppedCanvas.height = croppedHeight;
+      croppedCtx.drawImage(canvas, minX, minY, croppedWidth, croppedHeight, 0, 0, croppedWidth, croppedHeight);
+
+      return {
+        dataUrl: croppedCanvas.toDataURL("image/png"),
+        width: croppedWidth,
+        height: croppedHeight,
+        cropped: true
+      };
+    }
+
     function readPngFile(file) {
       return new Promise((resolve, reject) => {
         if (!file) {
@@ -447,11 +527,16 @@
           const img = new Image();
           img.onerror = () => reject(new Error(`โหลดรูป ${file.name} ไม่สำเร็จ`));
           img.onload = () => {
+            const cropped = cropTransparentBounds(img);
             resolve({
               name: file.name,
-              dataUrl,
-              width: img.naturalWidth,
-              height: img.naturalHeight
+              originalDataUrl: dataUrl,
+              originalWidth: img.naturalWidth,
+              originalHeight: img.naturalHeight,
+              dataUrl: cropped.dataUrl,
+              width: cropped.width,
+              height: cropped.height,
+              cropped: cropped.cropped
             });
           };
           img.src = dataUrl;
@@ -466,6 +551,10 @@
 
     function shouldShowLabel() {
       return Boolean(els.showLabel.checked);
+    }
+
+    function isSmartfarmRawMode() {
+      return Boolean(els.smartfarmRawMode.checked);
     }
 
     function getAutoPaddingValue() {
@@ -486,10 +575,14 @@
     function refreshOptionState() {
       const showLabel = shouldShowLabel();
       const autoPadding = Boolean(els.autoPadding.checked);
+      const smartfarmRawMode = isSmartfarmRawMode();
 
       els.labelText.disabled = !showLabel;
       els.labelGap.disabled = !showLabel;
       els.padding.disabled = autoPadding;
+      els.commandAction.disabled = !smartfarmRawMode;
+      els.commandType.disabled = !smartfarmRawMode;
+      els.commandAddr.disabled = !smartfarmRawMode;
     }
 
     function updateButtons() {
@@ -523,15 +616,19 @@
 
       els.previewCanvas.append(offImg, onImg);
       els.sizeChip.textContent =
-        `OFF ${state.off.width}x${state.off.height} | ON ${state.on.width}x${state.on.height} | padding ${getPaddingValue()}${els.autoPadding.checked ? " auto" : ""}`;
+        `OFF ${state.off.width}x${state.off.height}${state.off.cropped ? ` cropped from ${state.off.originalWidth}x${state.off.originalHeight}` : ""} | ON ${state.on.width}x${state.on.height}${state.on.cropped ? ` cropped from ${state.on.originalWidth}x${state.on.originalHeight}` : ""} | padding ${getPaddingValue()}${els.autoPadding.checked ? " auto" : ""}`;
       updateButtons();
     }
 
     function buildSvg() {
       const padding = getPaddingValue();
       const showLabel = shouldShowLabel();
+      const smartfarmRawMode = isSmartfarmRawMode();
       const labelGap = showLabel ? Math.max(0, Number(els.labelGap.value) || 0) : 0;
       const labelText = showLabel ? (els.labelText.value || "") : "";
+      const commandAction = els.commandAction.value || "write_bit";
+      const commandType = els.commandType.value || "Y";
+      const commandAddr = Math.max(0, Number(els.commandAddr.value) || 0);
 
       const imageWidth = Math.max(state.off.width, state.on.width);
       const imageHeight = Math.max(state.off.height, state.on.height);
@@ -547,6 +644,18 @@
       const labelSvg = labelText
         ? `  <text id="label" x="${width / 2}" y="${labelY}" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#f3f7fb">${xmlEscape(labelText)}</text>\n`
         : "";
+      const exportLines = smartfarmRawMode
+        ? `    let _pb_state = ${state.isOn ? "true" : "false"};\n    let _ps_cmd = '';\n    let _ps_label = '${jsString(labelText)}';\n    let _ps_action = '${jsString(commandAction)}';\n    let _ps_type = '${jsString(commandType)}';\n    let _pn_addr = ${commandAddr};`
+        : `    let _pb_state = ${state.isOn ? "true" : "false"};\n    let _pb_cmd = ${state.isOn ? "true" : "false"};\n    let _ps_label = '${jsString(labelText)}';`;
+      const putValueBody = smartfarmRawMode
+        ? `      if (id === '_pb_state') {\n        currentState = !!value;\n        render();\n      } else if (id === '_ps_label') {\n        _ps_label = String(value ?? '');\n        render();\n      } else if (id === '_ps_action') {\n        _ps_action = String(value ?? '${jsString(commandAction)}');\n      } else if (id === '_ps_type') {\n        _ps_type = String(value ?? '${jsString(commandType)}');\n      } else if (id === '_pn_addr') {\n        const parsed = Number(value);\n        _pn_addr = Number.isFinite(parsed) ? parsed : ${commandAddr};\n      }`
+        : `      if (id === '_pb_state') {\n        currentState = !!value;\n        render();\n      } else if (id === '_ps_label') {\n        _ps_label = String(value ?? '');\n        render();\n      }`;
+      const sendCommandFn = smartfarmRawMode
+        ? `    function buildPayload(nextState) {\n      const addr = Number.isFinite(Number(_pn_addr)) ? Number(_pn_addr) : ${commandAddr};\n      return JSON.stringify({\n        action: _ps_action || '${jsString(commandAction)}',\n        type: _ps_type || '${jsString(commandType)}',\n        addr: addr,\n        value: !!nextState\n      });\n    }\n\n    function sendCommand(nextState) {\n      currentState = !!nextState;\n      render();\n      if (typeof postValue === 'function') {\n        postValue('_ps_cmd', buildPayload(currentState));\n      }\n    }`
+        : `    function sendCommand(nextState) {\n      if (typeof postValue === 'function') {\n        postValue('_pb_cmd', nextState);\n      }\n    }`;
+      const listeners = smartfarmRawMode
+        ? `      clickTarget.addEventListener('click', () => sendCommand(!currentState));`
+        : `      clickTarget.addEventListener('mousedown', () => sendCommand(true));\n      clickTarget.addEventListener('mouseup', () => sendCommand(false));\n      clickTarget.addEventListener('mouseleave', () => sendCommand(false));\n      clickTarget.addEventListener('touchstart', () => sendCommand(true));\n      clickTarget.addEventListener('touchend', () => sendCommand(false));`;
 
       return `<?xml version="1.0" encoding="UTF-8"?>
 <svg id="${xmlEscape(safeFileName(els.widgetName.value))}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}">
@@ -556,10 +665,12 @@ ${labelSvg}  <rect id="clickTarget" x="0" y="0" width="${width}" height="${heigh
 
   <script><![CDATA[
     //!export-start
-    let _pb_state = ${state.isOn ? "true" : "false"};
-    let _pb_cmd = ${state.isOn ? "true" : "false"};
-    let _ps_label = '${jsString(labelText)}';
+${exportLines}
     //!export-end
+
+    function postValue(id, value) {
+      console.error('Not defined!', id, value);
+    }
 
     let currentState = !!_pb_state;
 
@@ -582,28 +693,14 @@ ${labelSvg}  <rect id="clickTarget" x="0" y="0" width="${width}" height="${heigh
     }
 
     function putValue(id, value) {
-      if (id === '_pb_state') {
-        currentState = !!value;
-        render();
-      } else if (id === '_ps_label') {
-        _ps_label = String(value ?? '');
-        render();
-      }
+${putValueBody}
     }
 
-    function sendCommand(nextState) {
-      if (typeof postValue === 'function') {
-        postValue('_pb_cmd', nextState);
-      }
-    }
+${sendCommandFn}
 
     const clickTarget = document.getElementById('clickTarget');
     if (clickTarget) {
-      clickTarget.addEventListener('mousedown', () => sendCommand(true));
-      clickTarget.addEventListener('mouseup', () => sendCommand(false));
-      clickTarget.addEventListener('mouseleave', () => sendCommand(false));
-      clickTarget.addEventListener('touchstart', () => sendCommand(true));
-      clickTarget.addEventListener('touchend', () => sendCommand(false));
+${listeners}
       clickTarget.style.cursor = 'pointer';
     }
 
@@ -646,9 +743,13 @@ ${labelSvg}  <rect id="clickTarget" x="0" y="0" width="${width}" height="${heigh
 
     els.showLabel.addEventListener("change", renderPreview);
     els.autoPadding.addEventListener("change", renderPreview);
+    els.smartfarmRawMode.addEventListener("change", renderPreview);
     els.labelText.addEventListener("input", renderPreview);
     els.padding.addEventListener("input", renderPreview);
     els.labelGap.addEventListener("input", renderPreview);
+    els.commandAction.addEventListener("input", renderPreview);
+    els.commandType.addEventListener("input", renderPreview);
+    els.commandAddr.addEventListener("input", renderPreview);
 
     els.togglePreviewBtn.addEventListener("click", () => {
       state.isOn = !state.isOn;
