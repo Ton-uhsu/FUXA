@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Smartfarm FUXA demo widget: animated fan status indicator. -->
+<svg id="smartfarmFanStatus" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
+  <defs>
+    <radialGradient id="fanCase" cx="50%" cy="45%" r="62%">
+      <stop offset="0%" stop-color="#f7fafc"/>
+      <stop offset="55%" stop-color="#9aa6b2"/>
+      <stop offset="100%" stop-color="#3a4551"/>
+    </radialGradient>
+    <radialGradient id="fanHub" cx="42%" cy="35%" r="64%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="42%" stop-color="#d6dee6"/>
+      <stop offset="100%" stop-color="#526170"/>
+    </radialGradient>
+    <filter id="fanGlow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <circle cx="90" cy="82" r="68" fill="#202833"/>
+  <circle cx="90" cy="82" r="62" fill="url(#fanCase)"/>
+  <circle cx="90" cy="82" r="52" fill="#111821"/>
+  <circle id="runGlow" cx="90" cy="82" r="50" fill="#22c55e" opacity="0.12" filter="url(#fanGlow)"/>
+  <g id="fanBlades" transform="rotate(0 90 82)" opacity="0.55">
+    <path d="M90 78 C104 46 132 43 143 61 C127 70 113 80 93 84 Z" fill="#cfd8e3"/>
+    <path d="M94 82 C126 96 129 124 111 135 C102 119 92 105 88 85 Z" fill="#cfd8e3"/>
+    <path d="M90 86 C76 118 48 121 37 103 C53 94 67 84 87 80 Z" fill="#cfd8e3"/>
+    <path d="M86 82 C54 68 51 40 69 29 C78 45 88 59 92 79 Z" fill="#cfd8e3"/>
+  </g>
+  <circle cx="90" cy="82" r="19" fill="url(#fanHub)" stroke="#edf3f7" stroke-width="3"/>
+  <circle cx="90" cy="82" r="7" fill="#6b7887"/>
+  <g stroke="#dfe7ee" stroke-width="2" opacity="0.75">
+    <circle cx="90" cy="82" r="45" fill="none"/>
+    <line x1="90" y1="32" x2="90" y2="132"/>
+    <line x1="40" y1="82" x2="140" y2="82"/>
+    <line x1="54" y1="46" x2="126" y2="118"/>
+    <line x1="126" y1="46" x2="54" y2="118"/>
+  </g>
+  <rect x="55" y="143" width="70" height="20" rx="10" fill="#202833"/>
+  <circle id="statusDot" cx="68" cy="153" r="5" fill="#6b7280"/>
+  <text id="valueText" x="90" y="158" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="700" fill="#e6edf3">OFF</text>
+  <text id="labelText" x="90" y="176" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#d8e1ea">FAN</text>
+
+  <script><![CDATA[
+    //!export-start
+    let _pb_running = false;
+    let _pn_speed = 0;
+    let _ps_label = 'FAN';
+    let _pc_on = '#22c55e';
+    let _pc_off = '#6b7280';
+    //!export-end
+
+    let fanAnimationFrame = null;
+    let fanAngle = 0;
+    let fanLastTime = null;
+
+    function toNumber(value, fallback) {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : fallback;
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function setText(el, text) {
+      if (!el) return;
+      while (el.firstChild) {
+        el.removeChild(el.firstChild);
+      }
+      el.appendChild(document.createTextNode(text));
+    }
+
+    function postValue(id, value) {
+      console.error('Not defined!', id, value);
+    }
+
+    function isRunning() {
+      return !!_pb_running || toNumber(_pn_speed, 0) > 0;
+    }
+
+    function stopFanAnimation() {
+      const blades = document.getElementById('fanBlades');
+      if (fanAnimationFrame !== null) {
+        cancelAnimationFrame(fanAnimationFrame);
+        fanAnimationFrame = null;
+      }
+      fanLastTime = null;
+      if (blades) {
+        blades.setAttribute('transform', 'rotate(0 90 82)');
+      }
+    }
+
+    function fanTick(timestamp) {
+      const blades = document.getElementById('fanBlades');
+      if (!blades || !isRunning()) {
+        stopFanAnimation();
+        return;
+      }
+
+      const speed = clamp(toNumber(_pn_speed, 0), 0, 100);
+      const elapsed = fanLastTime === null ? 16 : timestamp - fanLastTime;
+      fanLastTime = timestamp;
+      fanAngle = (fanAngle + elapsed * (0.12 + speed * 0.015)) % 360;
+      blades.setAttribute('transform', 'rotate(' + fanAngle + ' 90 82)');
+      fanAnimationFrame = requestAnimationFrame(fanTick);
+    }
+
+    function startFanAnimation() {
+      if (fanAnimationFrame === null) {
+        fanLastTime = null;
+        fanAnimationFrame = requestAnimationFrame(fanTick);
+      }
+    }
+
+    function render() {
+      const speed = clamp(toNumber(_pn_speed, 0), 0, 100);
+      const running = isRunning();
+      const blades = document.getElementById('fanBlades');
+      const glow = document.getElementById('runGlow');
+      const dot = document.getElementById('statusDot');
+      const valueText = document.getElementById('valueText');
+      const labelText = document.getElementById('labelText');
+
+      if (blades) blades.setAttribute('opacity', running ? '1' : '0.55');
+      if (running) {
+        startFanAnimation();
+      } else {
+        stopFanAnimation();
+      }
+      if (glow) {
+        glow.setAttribute('fill', _pc_on || '#22c55e');
+        glow.setAttribute('opacity', running ? '0.45' : '0.12');
+      }
+      if (dot) dot.setAttribute('fill', running ? (_pc_on || '#22c55e') : (_pc_off || '#6b7280'));
+      setText(valueText, running ? (speed > 0 ? Math.round(speed) + '%' : 'ON') : 'OFF');
+      setText(labelText, _ps_label || '');
+    }
+
+    function putValue(id, value) {
+      if (id === '_pb_running') {
+        _pb_running = value === true || value === 1 || value === '1' || String(value).toLowerCase() === 'true';
+      } else if (id === '_pn_speed') {
+        _pn_speed = toNumber(value, _pn_speed);
+      } else if (id === '_ps_label') {
+        _ps_label = String(value ?? '');
+      } else if (id === '_pc_on') {
+        _pc_on = String(value ?? '#22c55e');
+      } else if (id === '_pc_off') {
+        _pc_off = String(value ?? '#6b7280');
+      }
+      render();
+    }
+
+    render();
+  ]]></script>
+</svg>
